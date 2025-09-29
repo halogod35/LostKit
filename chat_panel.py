@@ -1,4 +1,4 @@
-# chat_panel.py - Fixed to use persistent storage
+# chat_panel.py
 import gc
 import os
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
@@ -35,13 +35,13 @@ class ChatPanel(QWidget):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(5)
         
-        # Chat title label - smaller height
+        # Chat title label - 1.5x larger text while keeping same title bar height
         title_label = QLabel("IRC Chat")
         title_label.setStyleSheet("""
             QLabel {
                 color: #f5e6c0;
                 font-weight: bold;
-                font-size: 16px;
+                font-size: 24px;
                 background-color: #2a2a2a;
                 border: 2px solid #2a2a2a;
                 padding: 2px 10px;
@@ -49,7 +49,7 @@ class ChatPanel(QWidget):
             }
         """)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setFixedHeight(22)
+        title_label.setFixedHeight(22)  # Keep same height
         layout.addWidget(title_label)
         
         # Web view for IRC chat
@@ -259,6 +259,7 @@ class ChatPanel(QWidget):
         # Save final chat zoom factor
         try:
             config.set_config_value("chat_zoom_factor", self.chat_zoom_factor)
+            print(f"Saved chat zoom factor: {self.chat_zoom_factor}")
         except Exception as e:
             print(f"Error saving chat zoom factor: {e}")
             
