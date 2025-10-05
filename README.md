@@ -1,6 +1,6 @@
 # 🧙‍♂️ LostKit – LostHQ’s Toolkit for Lost City
 
-LostKit is the LostHQ team’s ultimate toolkit for navigating and enjoying Lost City. It blends nostalgia with practicality, keeping all essential tools adventurers could ever need in one place, while preserving that old-school RPG charm.
+**LostKit** is the **LostHQ** team’s ultimate toolkit for navigating and enjoying **Lost City**. It blends nostalgia with practicality, keeping all essential tools adventurers could ever need in one place, while preserving that old-school RPG charm.
 
 ## ✨ Features
 - **Separate Windows & Tabs:** Open tools in their own windows or tabs for full flexibility.  
@@ -34,5 +34,5 @@ LostKit is the LostHQ team’s ultimate toolkit for navigating and enjoying Lost
 <img width="1425" height="1031" alt="image" src="https://github.com/user-attachments/assets/b8e45d85-e0b9-4faf-b83d-9371a1b651f0" />
 
 ---
-LostKit is the LostHQ team’s effort — a toolkit built for adventurers, explorers, and anyone who wants the magic of Lost City at their fingertips.
+**LostKit** is the **LostHQ** team’s effort — a toolkit built for adventurers, explorers, and anyone who wants the magic of Lost City at their fingertips.
 
