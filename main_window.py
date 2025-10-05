@@ -1,14 +1,16 @@
-# main_window.py - Updated with readable font application
+# main_window.py
 import gc
 import time
 import uuid
+import re
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QSplitter, 
                              QVBoxLayout, QTabWidget, QPushButton, QLabel)
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QPalette, QBrush, QColor
 from game_view import GameViewWidget
 from right_panel import RightToolsPanel, InGameBrowser
 from chat_panel import ChatPanel
+from world_switcher import WorldSwitcherWindow
 import config
 from styles import get_main_stylesheet, get_icon_path
 from font_loader import font_loader
@@ -68,6 +70,9 @@ class MainWindow(QMainWindow):
         
         # Track browser tabs for cleanup
         self.browser_tabs = {}
+        
+        # World switcher window
+        self.world_switcher_window = None
         
         # Setup resource management
         self.setup_resource_management()
@@ -242,7 +247,7 @@ class MainWindow(QMainWindow):
         self.main_horizontal_splitter.addWidget(self.left_widget)
 
     def create_game_section(self):
-        """Create the main game section with tabs"""
+        """Create the main game section with tabs - starts with detail page loaded"""
         self.game_widget = QWidget()
         game_layout = QVBoxLayout(self.game_widget)
         game_layout.setContentsMargins(0, 0, 0, 0)
@@ -281,10 +286,15 @@ class MainWindow(QMainWindow):
             }
         """)
         
-        # Game view tab
+        # Game view tab - Start with detail page loaded
         game_url = "https://2004.lostcity.rs/detail"
+        print(f"Starting with detail page: {game_url}")
+        
         self.game_view = GameViewWidget(game_url)
         self.game_view.instance_id = self.instance_id
+        
+        # Connect to URL changes to update world info
+        self.game_view.page().urlChanged.connect(self.on_game_url_changed)
         
         # Restore zoom factor
         saved_zoom = self.config.get("zoom_factor", 1.0)
@@ -311,6 +321,7 @@ class MainWindow(QMainWindow):
         self.tools_panel.browser_requested.connect(self.open_browser_tab)
         self.tools_panel.chat_toggle_requested.connect(self.toggle_chat_panel)
         self.tools_panel.panel_collapse_requested.connect(self.on_panel_collapse_requested)
+        self.tools_panel.world_switch_requested.connect(self.open_world_switcher)
         self.main_horizontal_splitter.addWidget(self.tools_panel)
 
         # Restore horizontal splitter sizes based on saved collapse state
@@ -420,6 +431,97 @@ class MainWindow(QMainWindow):
             if self.tab_widget.widget(i) == browser_widget:
                 self.close_browser_tab(i)
                 break
+    
+    def open_world_switcher(self):
+        """Open or focus the world switcher window"""
+        if self.world_switcher_window is None:
+            # Get current world URL from game view
+            current_url = self.game_view.url().toString()
+            
+            # Create world switcher window
+            self.world_switcher_window = WorldSwitcherWindow(current_url, self)
+            self.world_switcher_window.world_selected.connect(self.on_world_selected)
+            
+            # Give reference to tools panel
+            self.tools_panel.set_world_switcher_window(self.world_switcher_window)
+        
+        # Show and focus the window
+        self.world_switcher_window.show()
+        self.world_switcher_window.activateWindow()
+        self.world_switcher_window.raise_()
+    
+    def on_world_selected(self, world_url, world_info, is_high_detail):
+        """Handle world selection from world switcher"""
+        print(f"Switching to: {world_info}")
+        print(f"URL: {world_url}")
+        print(f"High Detail: {is_high_detail}")
+        
+        # Load the new world in the game view
+        self.game_view.setUrl(QUrl(world_url))
+        
+        # Update world info display in right panel
+        self.tools_panel.update_world_info(world_info)
+        
+        # Save the selected world to config
+        config.set_config_value("last_world_url", world_url)
+        config.set_config_value("last_world_info", world_info)
+    
+    def update_world_info_from_url(self, url):
+        """Update world info display by parsing the URL - ONLY show world info for recognized worlds"""
+        url_string = url if isinstance(url, str) else url.toString()
+        
+        # Extract world number
+        world_match = re.search(r'world[=:](\d+)', url_string, re.IGNORECASE)
+        if not world_match:
+            self.tools_panel.update_world_info("No world")
+            return
+        
+        world_num = world_match.group(1)
+        
+        # Extract detail mode
+        is_high_detail = 'detail=high' in url_string.lower()
+        is_low_detail = 'detail=low' in url_string.lower()
+        
+        # Only show world info if we have both a world number and detail mode
+        if not is_high_detail and not is_low_detail:
+            self.tools_panel.update_world_info("No world")
+            return
+        
+        detail_text = "HD" if is_high_detail else "LD"
+        
+        # Map world numbers to locations (from WORLDS_CONFIG)
+        location_map = {
+            '1': 'US',
+            '2': 'US',
+            '3': 'Finland',
+            '4': 'Finland',
+            '9': 'Australia',
+            '11': 'Japan',
+            '13': 'US',
+            '15': 'US',
+            '17': 'Singapore',
+        }
+        
+        location = location_map.get(world_num, 'Unknown')
+        world_info = f"W{world_num} {location} ({detail_text})"
+        
+        self.tools_panel.update_world_info(world_info)
+        
+        # Save to config
+        config.set_config_value("last_world_url", url_string)
+        config.set_config_value("last_world_info", world_info)
+    
+    def on_game_url_changed(self, url):
+        """Handle game view URL changes"""
+        url_string = url.toString()
+        print(f"Game URL changed: {url_string}")
+        
+        # Update world info display from URL
+        self.update_world_info_from_url(url_string)
+        
+        # Update world switcher if it's open
+        if self.world_switcher_window:
+            self.world_switcher_window.update_current_world(url_string)
 
     def on_vertical_splitter_moved(self, pos, index):
         """Save vertical splitter position to config"""
