@@ -1,4 +1,4 @@
-# right_panel.py - Updated with readable font application
+# right_panel.py
 import weakref
 import gc
 import time
@@ -16,56 +16,45 @@ import config
 
 
 class ToolWindow(QMainWindow):
+    closed = pyqtSignal()
+    
     def __init__(self, url, title, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f"LostKit - {title}")
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         
+        # CRITICAL: Make window appear as separate task in Windows taskbar
         self.setWindowFlags(Qt.WindowType.Window)
         
         if os.path.exists("icon.ico"):
             self.setWindowIcon(QIcon("icon.ico"))
         
-        # Set black background
         palette = QPalette()
         palette.setColor(QPalette.ColorRole.Window, QColor(0, 0, 0))
         self.setPalette(palette)
         
-        # Store tool name for persistent storage
         self.tool_name = title
         self.load_window_geometry()
-        
         self.setMinimumSize(600, 400)
 
-        # Create central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
         layout = QVBoxLayout(central_widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Use persistent profile names without process IDs or timestamps
         profile_name = f"ToolWindow_{title.replace(' ', '_')}"
         
         try:
             profile = QWebEngineProfile(profile_name, self)
-            
-            # Use persistent cache paths that survive application restarts
             cache_path = config.get_persistent_cache_path(f"tool_{title.replace(' ', '_')}")
             storage_path = config.get_persistent_profile_path(f"tool_{title.replace(' ', '_')}")
             
-            print(f"Tool '{title}' using persistent cache: {cache_path}")
-            print(f"Tool '{title}' using persistent storage: {storage_path}")
-            
             profile.setCachePath(cache_path)
             profile.setPersistentStoragePath(storage_path)
-            
-            # Force persistent cookies for login state preservation
             profile.setPersistentCookiesPolicy(
                 QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
             )
             
-            # Optimize settings while preserving login functionality
             settings = profile.settings()
             if get_config_value("resource_optimization", True):
                 settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
@@ -79,7 +68,6 @@ class ToolWindow(QMainWindow):
             self.web_view = QWebEngineView()
             self.web_view.setPage(page)
             
-            # Store references but don't store temporary paths
             self.profile_name = profile_name
             self.cache_path = cache_path
             self.storage_path = storage_path
@@ -94,91 +82,67 @@ class ToolWindow(QMainWindow):
             self._profile = None
         
         layout.addWidget(self.web_view)
-        
-        print(f"Loading URL in tool window: {url}")
         self.web_view.setUrl(QUrl(url))
         
-        # Setup cleanup timer
         self.cleanup_timer = QTimer(self)
         self.cleanup_timer.timeout.connect(self.perform_cleanup)
         cleanup_interval = get_config_value("cache_cleanup_interval", 300) * 1000
         self.cleanup_timer.start(cleanup_interval)
         
-        # Apply readable fonts after window creation
         QTimer.singleShot(100, self.force_apply_readable_fonts)
 
     def force_apply_readable_fonts(self):
-        """Force apply readable fonts to tool window"""
         font = QFont()
         if font_loader.is_custom_font_available():
             font.setFamily(font_loader.get_font_family_name())
-            print(f"Tool window using custom font: {font_loader.get_font_family_name()}")
         else:
-            # Try to find Runescape-Quill-Caps specifically
             test_font = QFont("Runescape-Quill-Caps", 18)
             if test_font.exactMatch():
                 font.setFamily("Runescape-Quill-Caps")
-                print(f"Tool window using Runescape-Quill-Caps font")
             else:
                 font.setFamily("Arial")
-                print(f"Tool window using Arial fallback")
         
-        font.setPointSize(18)  # Readable font for tool windows
+        font.setPointSize(18)
         font.setWeight(QFont.Weight.Normal)
-        
         self.setFont(font)
-        print(f"Applied {font.pointSize()}pt font ({font.family()}) to tool window: {self.tool_name}")
 
     def load_window_geometry(self):
-        """Load window geometry specific to this tool"""
         try:
             config_key = f"tool_window_geometry_{self.tool_name.replace(' ', '_')}"
             geom = get_config_value(config_key, None)
             
             if geom and isinstance(geom, list) and len(geom) == 4:
                 x, y, w, h = [int(val) for val in geom]
-                # Ensure window appears on screen
                 x = max(0, min(x, 1920 - w))
                 y = max(0, min(y, 1080 - h))
                 w = max(600, min(w, 1920))
                 h = max(400, min(h, 1080))
                 self.setGeometry(x, y, w, h)
-                print(f"Restored geometry for {self.tool_name}: {w}x{h} at ({x},{y})")
             else:
-                # Default geometry with slight offset
                 offset = hash(self.tool_name) % 10 * 25
                 self.setGeometry(200 + offset, 200 + offset, 1000, 800)
-                print(f"Using default geometry for {self.tool_name}")
         except (ValueError, TypeError) as e:
-            print(f"Error setting tool window geometry: {e}, using defaults")
             self.setGeometry(200, 200, 1000, 800)
 
     def save_window_geometry(self):
-        """Save window geometry specific to this tool"""
         try:
             geom = self.geometry()
             config_key = f"tool_window_geometry_{self.tool_name.replace(' ', '_')}"
             set_config_value(config_key, [geom.x(), geom.y(), geom.width(), geom.height()])
-            print(f"Saved geometry for {self.tool_name}: {geom.width()}x{geom.height()}")
         except Exception as e:
             print(f"Error saving tool window geometry: {e}")
 
     def perform_cleanup(self):
-        """Perform light cleanup without removing persistent data"""
         try:
             if get_config_value("resource_optimization", True):
-                # Only memory cleanup, preserve login data
                 gc.collect()
         except Exception as e:
             print(f"Error during tool window cleanup: {e}")
 
     def cleanup_cache_files(self):
-        """Light cleanup - preserve login data and cookies"""
-        print(f"Tool window '{self.tool_name}' cleanup: Preserving login data")
-        # Don't delete persistent storage - it contains login sessions
+        pass
 
     def resizeEvent(self, event):
-        """Handle window resize events with debounced saving"""
         super().resizeEvent(event)
         if not hasattr(self, 'save_timer'):
             self.save_timer = QTimer(self)
@@ -187,7 +151,6 @@ class ToolWindow(QMainWindow):
         self.save_timer.start(1000)
 
     def moveEvent(self, event):
-        """Handle window move events with debounced saving"""
         super().moveEvent(event)
         if not hasattr(self, 'save_timer'):
             self.save_timer = QTimer(self)
@@ -196,23 +159,16 @@ class ToolWindow(QMainWindow):
         self.save_timer.start(1000)
 
     def closeEvent(self, event):
-        """Clean up when closing but preserve persistent data"""
-        # Save geometry before closing
         self.save_window_geometry()
-        
         if hasattr(self, 'cleanup_timer'):
             self.cleanup_timer.stop()
-        
-        # Clean up web view properly but preserve persistent storage
         if hasattr(self, 'web_view') and self.web_view:
             try:
                 self.web_view.setPage(None)
                 self.web_view.deleteLater()
             except Exception as e:
                 print(f"Error cleaning up web view: {e}")
-        
-        # Don't clean persistent cache files - they contain login data
-        print(f"Tool window '{self.tool_name}' closed - login data preserved")
+        self.closed.emit()
         gc.collect()
         event.accept()
 
@@ -229,13 +185,10 @@ class InGameBrowser(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Use persistent profile for in-game browser tabs too
         profile_name = f"InGameBrowser_{title.replace(' ', '_')}"
         
         try:
             profile = QWebEngineProfile(profile_name, self)
-            
-            # Use persistent storage for in-game browsers too
             cache_path = config.get_persistent_cache_path(f"ingame_{title.replace(' ', '_')}")
             storage_path = config.get_persistent_profile_path(f"ingame_{title.replace(' ', '_')}")
                 
@@ -245,7 +198,6 @@ class InGameBrowser(QWidget):
                 QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
             )
             
-            # Optimize for in-game browser
             settings = profile.settings()
             if get_config_value("resource_optimization", True):
                 settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
@@ -257,7 +209,6 @@ class InGameBrowser(QWidget):
             self.web_view = QWebEngineView()
             self.web_view.setPage(page)
             
-            # Store for reference
             self.profile_name = profile_name
             self.cache_path = cache_path
             self.storage_path = storage_path
@@ -272,25 +223,18 @@ class InGameBrowser(QWidget):
             self._profile = None
         
         layout.addWidget(self.web_view)
-        
-        print(f"Loading URL in tab: {url}")
         self.web_view.setUrl(QUrl(url))
 
     def cleanup_cache_files(self):
-        """Light cleanup - preserve login data"""
-        print(f"In-game browser '{self.title}' cleanup: Preserving login data")
-        # Don't delete persistent storage
+        pass
 
     def closeEvent(self, event):
-        """Clean up properly but preserve persistent data"""
         if hasattr(self, 'web_view') and self.web_view:
             try:
                 self.web_view.setPage(None)
                 self.web_view.deleteLater()
             except Exception as e:
                 print(f"Error cleaning up web view: {e}")
-        
-        # Don't clean persistent storage
         self.closed.emit()
         event.accept()
 
@@ -299,15 +243,20 @@ class RightToolsPanel(QWidget):
     browser_requested = pyqtSignal(str, str)
     chat_toggle_requested = pyqtSignal()
     panel_collapse_requested = pyqtSignal(bool)
+    world_switch_requested = pyqtSignal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
         
         self.config = load_config()
-        self.tool_windows = weakref.WeakValueDictionary()
+        
+        # CHANGE: Use normal dict instead of weakref for better control
+        self.tool_windows = {}  # key: tool_name, value: ToolWindow instance
         self.window_count = 0
         
-        # Restore collapse state
+        self.world_switcher_window = None
+        self.current_world_info = "No world"  # Default to "No world" on startup
+        
         self.collapsed = get_config_value("right_panel_collapsed", False)
         self.saved_width = self.config.get("right_panel_width", 250)
         
@@ -315,58 +264,42 @@ class RightToolsPanel(QWidget):
         palette.setColor(QPalette.ColorRole.Window, QColor(0, 0, 0))
         self.setPalette(palette)
         
-        # Calculate optimal panel width
         self.optimal_width = self.calculate_optimal_width()
         
-        # Set fixed width based on restored collapse state
         if self.collapsed:
             self.setFixedWidth(25)
         else:
             self.setFixedWidth(self.optimal_width)
         
         self.setup_ui()
-        
-        # Apply readable fonts after UI creation
         QTimer.singleShot(100, self.force_apply_readable_fonts)
         
     def force_apply_readable_fonts(self):
-        """Force apply readable fonts to all panel elements"""
-        print("Forcing readable font application to right panel...")
-        
-        # Create readable fonts for different elements
         button_font = QFont()
         if font_loader.is_custom_font_available():
             button_font.setFamily(font_loader.get_font_family_name())
-            print(f"Right panel using custom font: {font_loader.get_font_family_name()}")
         else:
-            # Try to find Runescape-Quill-Caps specifically
             test_font = QFont("Runescape-Quill-Caps", 18)
             if test_font.exactMatch():
                 button_font.setFamily("Runescape-Quill-Caps")
-                print("Right panel using Runescape-Quill-Caps font")
             else:
                 button_font.setFamily("Arial")
-                print("Right panel using Arial fallback")
         
-        button_font.setPointSize(18)  # Readable size for buttons
+        button_font.setPointSize(20)
         button_font.setWeight(QFont.Weight.Normal)
         
         group_font = QFont()
         group_font.setFamily(button_font.family())
-        group_font.setPointSize(20)  # Slightly larger for group titles
+        group_font.setPointSize(22)
         group_font.setWeight(QFont.Weight.Bold)
         
         checkbox_font = QFont()
         checkbox_font.setFamily(button_font.family())
-        checkbox_font.setPointSize(16)  # Readable size for checkboxes
+        checkbox_font.setPointSize(18)
         
-        # Apply fonts to all elements recursively
         self.apply_fonts_to_children(self, button_font, group_font, checkbox_font)
-        
-        print(f"Applied readable fonts to right panel elements: buttons({button_font.pointSize()}pt), groups({group_font.pointSize()}pt), checkboxes({checkbox_font.pointSize()}pt)")
     
     def apply_fonts_to_children(self, widget, button_font, group_font, checkbox_font):
-        """Apply appropriate readable fonts to all child widgets"""
         try:
             if isinstance(widget, QPushButton):
                 widget.setFont(button_font)
@@ -374,10 +307,11 @@ class RightToolsPanel(QWidget):
                 widget.setFont(group_font)
             elif isinstance(widget, QCheckBox):
                 widget.setFont(checkbox_font)
+            elif isinstance(widget, QLabel):
+                widget.setFont(button_font)
             else:
-                widget.setFont(button_font)  # Default to button font
+                widget.setFont(button_font)
             
-            # Apply to children
             for child in widget.findChildren(QWidget):
                 self.apply_fonts_to_children(child, button_font, group_font, checkbox_font)
                 
@@ -385,13 +319,11 @@ class RightToolsPanel(QWidget):
             print(f"Error applying fonts: {e}")
         
     def calculate_optimal_width(self):
-        """Calculate the optimal width to fit all buttons and scrollbar"""
         base_button_width = 160
         total_width = base_button_width + 16 + 23 + 8 + 10 + 16 + 8
         return total_width
         
     def setup_ui(self):
-        """Setup UI based on current collapse state"""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(4, 4, 4, 4)
         main_layout.setSpacing(6)
@@ -402,7 +334,6 @@ class RightToolsPanel(QWidget):
             self.setup_expanded_ui(main_layout)
 
     def setup_collapsed_ui(self, main_layout):
-        """Setup UI for collapsed state"""
         self.clear_layout(main_layout)
         
         main_layout.addStretch()
@@ -422,16 +353,9 @@ class RightToolsPanel(QWidget):
                 color: #f5e6c0;
                 font-weight: bold;
                 font-size: 10px;
-                margin: 0px;
-                padding: 0px;
             }
             QPushButton:hover {
                 background-color: #a55a5a;
-                border-color: #8b4a4a;
-            }
-            QPushButton:pressed {
-                background-color: #8b4a4a;
-                border: 1px inset #2a2a2a;
             }
         """)
         self.expand_btn.clicked.connect(self.expand_panel)
@@ -443,8 +367,11 @@ class RightToolsPanel(QWidget):
         main_layout.addStretch()
 
     def setup_expanded_ui(self, main_layout):
-        """Setup UI for expanded state"""
         self.clear_layout(main_layout)
+        
+        # Current world display with button.jpg background
+        self.world_info_label = self.create_world_info_display()
+        main_layout.addWidget(self.world_info_label)
         
         # Settings panel
         settings_group = QGroupBox("Settings")
@@ -469,9 +396,9 @@ class RightToolsPanel(QWidget):
         settings_layout.setContentsMargins(8, 8, 8, 8)
         settings_layout.setSpacing(5)
         
-        # External window toggle - restore from config
         self.external_cb = QCheckBox("Open tools externally")
-        saved_external = self.config.get("open_external", True)
+        # CHANGE: Load saved state from config
+        saved_external = get_config_value("open_external", True)
         self.external_cb.setChecked(saved_external)
         self.external_cb.stateChanged.connect(self.toggle_external_mode)
         self.external_cb.setStyleSheet("""
@@ -501,12 +428,35 @@ class RightToolsPanel(QWidget):
         settings_group.setMaximumHeight(70)
         main_layout.addWidget(settings_group)
         
-        # IRC Chat toggle button - restore state
+        # World Switcher button
+        self.world_switcher_btn = QPushButton("World Switcher")
+        self.world_switcher_btn.setFixedHeight(35)
+        self.world_switcher_btn.clicked.connect(self.open_world_switcher)
+        self.world_switcher_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #8b4a4a;
+                border: 2px solid #2a2a2a;
+                border-radius: 0px;
+                padding: 8px 12px;
+                color: #f5e6c0;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #a55a5a;
+                border-color: #8b4a4a;
+            }
+            QPushButton:pressed {
+                background-color: #8b4a4a;
+                border: 2px inset #2a2a2a;
+            }
+        """)
+        main_layout.addWidget(self.world_switcher_btn)
+        
+        # IRC Chat toggle button
         self.chat_toggle_btn = QPushButton("IRC Chat")
         self.chat_toggle_btn.setFixedHeight(35)
         self.chat_toggle_btn.clicked.connect(self.toggle_chat)
         
-        # Set button style based on saved chat visibility
         is_visible = self.config.get("chat_panel_visible", True)
         self.update_chat_button_style(is_visible)
         
@@ -535,7 +485,6 @@ class RightToolsPanel(QWidget):
         tools_layout.setContentsMargins(5, 5, 5, 5)
         tools_layout.setSpacing(4)
         
-        # Create scroll area
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -544,41 +493,28 @@ class RightToolsPanel(QWidget):
             QScrollArea {
                 background: #000000;
                 border: 1px solid #2a2a2a;
-                margin: 0px;
-                padding: 0px;
-            }
-            QScrollArea > QWidget > QWidget {
-                background: #000000;
-                margin: 0px;
-                padding: 0px;
             }
             QScrollBar:vertical {
                 background: #2a2a2a;
                 width: 14px;
-                margin: 0px;
                 border: 1px solid #2a2a2a;
             }
             QScrollBar::handle:vertical {
                 background: #8b4a4a;
                 min-height: 20px;
                 border-radius: 0px;
-                border: 1px solid #2a2a2a;
             }
             QScrollBar::handle:vertical:hover {
                 background: #a55a5a;
             }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
         """)
         
         self.scroll_widget = QWidget()
-        self.scroll_widget.setStyleSheet("background: #000000; margin: 0px; padding: 0px;")
+        self.scroll_widget.setStyleSheet("background: #000000;")
         self.scroll_layout = QVBoxLayout(self.scroll_widget)
         self.scroll_layout.setSpacing(4)
         self.scroll_layout.setContentsMargins(5, 5, 20, 5)
         
-        # Create tool buttons
         self.tool_buttons = []
         tool_urls = get_tool_urls()
         for tool_name, url in tool_urls.items():
@@ -594,53 +530,88 @@ class RightToolsPanel(QWidget):
         main_layout.addWidget(tools_group, 1)
 
     def clear_layout(self, layout):
-        """Clear all widgets from a layout"""
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+    
+    def create_world_info_display(self):
+        """Create the world info display widget with button.jpg background and larger, readable text"""
+        world_label = QLabel(self.current_world_info)
+        world_label.setFixedHeight(55)  # Increased height for better text display
+        world_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        world_label.setWordWrap(True)
+        
+        button_image_path = "button.jpg"
+        if os.path.exists(button_image_path):
+            world_label.setStyleSheet(f"""
+                QLabel {{
+                    background: url({button_image_path}) center center stretch;
+                    border: 2px solid #2a2a2a;
+                    border-radius: 0px;
+                    padding: 6px 8px;
+                    color: #f5e6c0;
+                    font-weight: bold;
+                    font-size: 18px;  /* Increased font size for readability */
+                }}
+            """)
+        else:
+            world_label.setStyleSheet("""
+                QLabel {
+                    background-color: #3a3a3a;
+                    border: 2px solid #2a2a2a;
+                    border-radius: 0px;
+                    padding: 6px 8px;
+                    color: #f5e6c0;
+                    font-weight: bold;
+                    font-size: 18px;  /* Increased font size for readability */
+                }
+            """)
+        
+        return world_label
+    
+    def update_world_info(self, world_info):
+        """Update the world info display"""
+        self.current_world_info = world_info
+        
+        if hasattr(self, 'world_info_label') and self.world_info_label:
+            self.world_info_label.setText(world_info)
+    
+    def open_world_switcher(self):
+        """Open or focus the world switcher window"""
+        self.world_switch_requested.emit()
+    
+    def set_world_switcher_window(self, window):
+        """Set reference to the world switcher window"""
+        self.world_switcher_window = window
 
     def expand_panel(self):
-        """Expand the panel from collapsed state"""
         self.collapsed = False
         set_config_value("right_panel_collapsed", False)
-        
-        # Set to optimal width for expanded state
         self.setFixedWidth(self.optimal_width)
-        
-        # Rebuild UI for expanded state
         main_layout = self.layout()
         self.setup_expanded_ui(main_layout)
-        
-        # Emit signal to parent to handle layout changes
         self.panel_collapse_requested.emit(False)
-        
-        # Apply fonts after rebuilding UI
         QTimer.singleShot(100, self.force_apply_readable_fonts)
 
     def set_collapsed_state(self, collapsed):
-        """Set collapse state and rebuild UI accordingly"""
         if self.collapsed != collapsed:
             self.collapsed = collapsed
             set_config_value("right_panel_collapsed", collapsed)
             
-            # Set appropriate width
             if collapsed:
                 self.setFixedWidth(25)
             else:
                 self.setFixedWidth(self.optimal_width)
             
-            # Rebuild UI based on new state
             main_layout = self.layout()
             if collapsed:
                 self.setup_collapsed_ui(main_layout)
             else:
                 self.setup_expanded_ui(main_layout)
-                # Apply fonts after rebuilding UI
                 QTimer.singleShot(100, self.force_apply_readable_fonts)
 
     def update_chat_button_style(self, is_visible):
-        """Update chat button style based on visibility"""
         if self.collapsed:
             return
             
@@ -648,7 +619,7 @@ class RightToolsPanel(QWidget):
             self.chat_toggle_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #4a6a4a;
-                    border: 1px solid #2a2a2a;
+                    border: 2px solid #2a2a2a;
                     border-radius: 0px;
                     padding: 8px 12px;
                     color: #f5e6c0;
@@ -656,18 +627,13 @@ class RightToolsPanel(QWidget):
                 }
                 QPushButton:hover {
                     background-color: #5a7a5a;
-                    border-color: #4a6a4a;
-                }
-                QPushButton:pressed {
-                    background-color: #4a6a4a;
-                    border: 1px inset #2a2a2a;
                 }
             """)
         else:
             self.chat_toggle_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #8b4a4a;
-                    border: 1px solid #2a2a2a;
+                    border: 2px solid #2a2a2a;
                     border-radius: 0px;
                     padding: 8px 12px;
                     color: #f5e6c0;
@@ -675,20 +641,13 @@ class RightToolsPanel(QWidget):
                 }
                 QPushButton:hover {
                     background-color: #a55a5a;
-                    border-color: #8b4a4a;
-                }
-                QPushButton:pressed {
-                    background-color: #8b4a4a;
-                    border: 1px inset #2a2a2a;
                 }
             """)
 
     def toggle_chat(self):
-        """Emit signal to toggle chat panel"""
         self.chat_toggle_requested.emit()
 
     def create_tool_button(self, name, url):
-        """Create a tool button with optimal sizing"""
         icon_path = get_icon_path(name)
         
         display_name = name
@@ -709,9 +668,6 @@ class RightToolsPanel(QWidget):
         else:
             btn = QPushButton(f"{icon_path} {display_name}")
         
-        btn.setProperty("display_name", display_name)
-        btn.setProperty("icon_path", icon_path)
-        
         btn.setStyleSheet(self.get_button_style())
         btn.setFixedHeight(42)
         btn.setMinimumWidth(160)
@@ -721,7 +677,6 @@ class RightToolsPanel(QWidget):
         return btn
 
     def get_button_style(self):
-        """Get button style optimized for the panel width"""
         button_image_path = "button.jpg"
         base_style = """
             QPushButton {
@@ -730,6 +685,7 @@ class RightToolsPanel(QWidget):
                 padding: 6px 10px;
                 color: #f5e6c0;
                 font-weight: bold;
+                font-size: 20px;
                 min-height: 38px;
                 max-height: 42px;
                 text-align: left;
@@ -755,16 +711,26 @@ class RightToolsPanel(QWidget):
         return base_style
         
     def open_tool(self, name, url):
-        """Open a tool either in external window or in-game browser"""
-        print(f"Opening tool: {name} -> {url}")
-        
         max_windows = get_config_value("max_tool_windows", 10)
-        
-        # Get current external mode setting
         external_mode = get_config_value("open_external", True)
         
         if external_mode:
             self.cleanup_dead_windows()
+            
+            # CHANGE: Check if tool window already exists for this tool
+            if name in self.tool_windows:
+                existing_window = self.tool_windows[name]
+                try:
+                    # Bring existing window to front instead of creating new one
+                    existing_window.show()
+                    existing_window.activateWindow()
+                    existing_window.raise_()
+                    print(f"Bringing existing {name} window to front")
+                    return
+                except Exception as e:
+                    print(f"Error activating existing window: {e}")
+                    # Remove dead reference and continue to create new window
+                    del self.tool_windows[name]
             
             if len(self.tool_windows) >= max_windows:
                 QMessageBox.warning(
@@ -775,31 +741,25 @@ class RightToolsPanel(QWidget):
                 )
                 return
             
-            window_key = f"{name}_{self.window_count}"
-            
             try:
                 tool_window = ToolWindow(url, name, self)
+                # CHANGE: Connect closed signal to remove from tracking
+                tool_window.closed.connect(lambda: self.on_tool_window_closed(name))
                 tool_window.show()
-                
-                self.tool_windows[window_key] = tool_window
+                self.tool_windows[name] = tool_window
                 self.window_count += 1
-                
-                print(f"Opened {name} in external window ({len(self.tool_windows)}/{max_windows})")
-                
             except Exception as e:
                 print(f"Error creating tool window: {e}")
-                QMessageBox.critical(
-                    self,
-                    "Error",
-                    f"Failed to open {name}:\n{str(e)}",
-                    QMessageBox.StandardButton.Ok
-                )
         else:
-            print(f"Emitting browser_requested signal for {name}")
             self.browser_requested.emit(url, name)
 
+    def on_tool_window_closed(self, tool_name):
+        """Handle tool window closed signal - remove from tracking"""
+        if tool_name in self.tool_windows:
+            del self.tool_windows[tool_name]
+            print(f"Removed {tool_name} from tool windows tracking")
+
     def cleanup_dead_windows(self):
-        """Remove references to closed windows"""
         dead_keys = []
         for key, window_ref in list(self.tool_windows.items()):
             try:
@@ -811,21 +771,14 @@ class RightToolsPanel(QWidget):
         for key in dead_keys:
             if key in self.tool_windows:
                 del self.tool_windows[key]
-        
-        if dead_keys:
-            print(f"Cleaned up {len(dead_keys)} dead window references")
             
     def toggle_external_mode(self, state):
-        """Toggle between external windows and in-game browser"""
         external = state == Qt.CheckState.Checked.value
         set_config_value("open_external", external)
-        print(f"External mode set to: {external}")
-        
         if not external:
             self.close_all_tool_windows()
 
     def close_all_tool_windows(self):
-        """Close all external tool windows"""
         windows_to_close = []
         
         for window_ref in list(self.tool_windows.values()):
@@ -843,10 +796,8 @@ class RightToolsPanel(QWidget):
         
         self.tool_windows.clear()
         self.window_count = 0
-        print("Closed all external tool windows")
 
     def closeEvent(self, event):
-        """Clean up tool windows when panel is closed"""
         self.close_all_tool_windows()
         gc.collect()
         event.accept()
