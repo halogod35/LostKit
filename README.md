@@ -1,39 +1,27 @@
-🧙‍♂️**LostKit**
+# 🧙‍♂️ LostKit – LostHQ’s Toolkit for Lost City
 
-**LostKit** is the **LostHQ** team’s effort to make **Lost City** easier to navigate and more fun to explore. It blends nostalgia with practicality, keeping all the tools adventurers might need in one place.
+LostKit is the LostHQ team’s ultimate toolkit for navigating and enjoying Lost City. It blends nostalgia with practicality, keeping all essential tools adventurers could ever need in one place, while preserving that old-school RPG charm.
 
-✨ **Features**
+## ✨ Features
+- **Separate Windows & Tabs:** Open tools in their own windows or tabs for full flexibility.  
+- **IRC Chat:** Talk with friends, find quest partners, or give clans a private space to strategize.  
+- **World Switcher:** Move between worlds effortlessly, as if by magic.  
 
-**Separate Tabs & Windows**: Tools run in their own space - no clutter, just pure utility.
-**IRC Chat**: Chat with friends, find quest partners, or give clans a private room for strategy.
-**World Switcher**: Jump between worlds in seconds, no hassle.
+## 🛠 Tools
+- **Forums:** Share adventures, strategies, and discoveries with the community.  
+- **Clue Coordinates Locator:** Pinpoints the exact location of buried treasures from clue scrolls.  
+- **Clue Scroll Help Tool:** Offers guidance and hints for tricky clue scrolls.  
+- **World Map:** Navigate Lost City and plan your next expedition.  
+- **Player’s Highscores:** Track friends’ or rivals’ skills to see who’s ahead.  
+- **Prices:** Buy, sell, or trade items with ease in the marketplace.  
+- **Quest Help:** Step-by-step guidance to complete quests efficiently.  
+- **Skill Guides:** Learn and master any skill with practical instructions.  
+- **Skills Calculator:** Plan skilling paths ahead of time like a true strategist.  
+- **Bestiary:** Lists monsters and their drops — know what to expect in battle.  
 
-🛠 **Tools**
+*LostKit is a LostHQ creation — a careful mix of old-school RPG vibes, simple design, and practical tools to make Lost City feel alive again.*
 
-**Forums**: Share tales of adventures, guides, and discoveries.
-
-**Clue Coordinates Locator**: Pinpoints the exact location of buried treasures from clue scrolls.
-
-**Clue Scroll Help Tool**: Extra hints for solving riddles when treasure hunting gets tricky.
-
-**World Map**: Navigate the lands and plan the next expedition.
-
-**Highscores**: Track the skills of allies and rivals alike.
-
-**Prices**: Buy, sell, or trade items with ease.
-
-**Quest Help**: Step-by-step guidance for quests.
-
-**Skill Guides**: Master any skill efficiently.
-
-**Skills Calculator**: Plan skilling paths ahead, like a true strategist.
-
-**Bestiary**: Lists monsters and their drops, so nothing comes as a surprise.
-
-
-LostKit is a mix of old-school RPG charm, simple design, and practical tools — a LostHQ creation designed to make Lost City feel alive again.
-
-**Preview:**
+## ⚡ Preview
 
 <img width="1426" height="1027" alt="image" src="https://github.com/user-attachments/assets/f73cdc6c-5e2f-4e52-a84d-64e3bc1717e1" />
 
@@ -44,3 +32,7 @@ LostKit is a mix of old-school RPG charm, simple design, and practical tools —
 <img width="1425" height="1030" alt="image" src="https://github.com/user-attachments/assets/aa2f9776-908b-4a12-acdc-5ea87c180c8c" />
 
 <img width="1425" height="1031" alt="image" src="https://github.com/user-attachments/assets/b8e45d85-e0b9-4faf-b83d-9371a1b651f0" />
+
+---
+LostKit is the LostHQ team’s effort — a toolkit built for adventurers, explorers, and anyone who wants the magic of Lost City at their fingertips.
+
