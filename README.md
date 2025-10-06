@@ -19,7 +19,6 @@
 - **Skills Calculator:** Plan skilling paths ahead of time like a true strategist.  
 - **Bestiary:** Lists monsters and their drops — know what to expect in battle.  
 
-*LostKit is a LostHQ creation — a careful mix of old-school RPG vibes, simple design, and practical tools to make Lost City feel alive again.*
 
 ## ⚡ Preview
 
@@ -32,7 +31,4 @@
 <img width="1425" height="1030" alt="image" src="https://github.com/user-attachments/assets/aa2f9776-908b-4a12-acdc-5ea87c180c8c" />
 
 <img width="1425" height="1031" alt="image" src="https://github.com/user-attachments/assets/b8e45d85-e0b9-4faf-b83d-9371a1b651f0" />
-
----
-**LostKit** is the **LostHQ** team’s effort — a toolkit built for adventurers, explorers, and anyone who wants the magic of Lost City at their fingertips.
 
