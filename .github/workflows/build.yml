@@ -27,11 +27,12 @@ jobs:
       run: |
         python -m nuitka main.py --assume-yes-for-downloads --onefile --standalone --enable-plugin=pyqt6 --windows-icon-from-ico=icon.ico --windows-console-mode=disable --include-data-files=icon.ico=icon.ico --include-data-files=button.jpg=button.jpg --include-data-files=RuneScape-Quill.ttf=RuneScape-Quill.ttf --include-data-files=icons/*=icons/ --output-filename=LostKit.exe --file-version=1.0.0 --product-version=1.0.0 --file-description=LostKit --company-name=LostHQ
 
-    - name: Create Release
+- name: Create Release
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ github.ref_name }}
         name: "LostKit"
-        body: "Automated build from push to main."
+        body: "Automated build for version ${{ github.ref_name }}."
         files: |
           LostKit.exe
       env:
